@@ -396,7 +396,7 @@ The audio messages did not prevent the successful video checks and output saves 
 | Deployment | Test the complete system on Jetson Orin Nano later. |
 
 
-#14# Home_01 Pose Test — Completed
+## 14. Home_01 Pose Test.
 
 We tested the pretrained YOLO11n-Pose model on `Home_01/video (1)`
 to check pose extraction in a different room and camera angle
