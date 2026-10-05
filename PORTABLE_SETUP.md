@@ -70,7 +70,7 @@ Both paths are relative to `DATASET_ROOT`, not to the current working directory.
 The new CSV can be committed and shared. Keep subset names in `video_id` because
 video filenames repeat between rooms.
 
-## Home_01 pose test completed before this update
+ ## Home_01 pose test — verified before and after the portability update
 
 | Check | Observed result |
 |---|---|
@@ -90,9 +90,11 @@ A rerun with different dependency versions can produce different detections.
 
 ## Before merging into main
 
-- Run the updated scripts locally and confirm the expected index counts and
-  Home pose output. A full real-dataset/model rerun was not possible in the
-  editing environment.
+- Local verification completed: the updated index builder saved 129 videos
+  (98 fall intervals and 31 zero-zero entries). The updated pose script
+  successfully read the relative video path and processed 264 frames,
+  producing keypoints with shape `(264, 17, 3)`.
+  Detection counts remained 261 single-person, 0 no-person, and 3 multiple.
 - Record tested package versions from the working interpreter before pinning:
 
   ```console
