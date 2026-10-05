@@ -395,15 +395,76 @@ The audio messages did not prevent the successful video checks and output saves 
 | Classifier | Build features, train, and evaluate after data preparation. |
 | Deployment | Test the complete system on Jetson Orin Nano later. |
 
-### Immediate next step — not yet completed
 
-In `extract_pose.py`, select the Home test and a separate output directory:
+#14# Home_01 Pose Test — Completed
 
-```python
-video_id = "Home_01/video (1)"
-output_folder = project / "outputs" / "pose_check_home01_video01"
-```
+We tested the pretrained YOLO11n-Pose model on `Home_01/video (1)`
+to check pose extraction in a different room and camera angle
+from the earlier Coffee_room_01 test.
 
-## 14. References and evidence
+### What the script did
+
+1. Found the video in `dataset_index.csv`.
+2. Resolved its relative path using the dataset root in `config.py`.
+3. Processed every frame and detected body keypoints.
+4. Saved a preview video showing the detected skeletons.
+5. Saved the numerical keypoints in `keypoints.npz`.
+
+### Results
+
+| Check | Result |
+|---|---|
+| Frames processed | 264 |
+| Frames with one person detected | 261 |
+| Frames with no person detected | 0 |
+| Frames with multiple detections | 3 |
+| Multiple-detection frame numbers | 124, 125, 127 |
+| Keypoints array shape | `(264, 17, 3)` |
+| Annotated fall interval | Frames 144–164, inclusive |
+| Detections during the fall | One person in all 21 frames |
+
+The array contains 264 frames, 17 body keypoints per frame,
+and three values per keypoint: normalized x, normalized y,
+and confidence.
+
+### Handling uncertain detections
+
+Frames with multiple detections keep their position in the array,
+but their keypoints are marked as missing (`NaN`).
+
+For frames with one detection, coordinates of keypoints with
+confidence below 0.5 are marked as missing. Their confidence
+values are preserved.
+
+### Review and conclusion
+
+Sampled preview frames showed that the skeleton generally followed
+the person while standing, falling, and lying down.
+
+During the annotated fall interval, both shoulders, hips, knees,
+and ankles had confidence of at least 0.5 in all 21 frames.
+Some face and arm keypoints were less reliable.
+
+This confirms successful pose extraction on this Home video.
+It does not measure fall-classifier accuracy; no Fall/Normal
+classifier was trained or evaluated in this test.
+
+The test was repeated successfully after introducing the shared
+configuration and relative CSV paths, with the same frame and
+detection counts.
+
+### Saved outputs
+
+Local output folder:
+
+`outputs/pose_check_home01_video01/`
+
+It contains the preview video and `keypoints.npz`.
+Generated outputs are excluded from Git.
+
+For installation, dataset configuration, and run instructions,
+see [Portable setup](PORTABLE_SETUP.md).
+
+## 15. References and evidence
 
 
