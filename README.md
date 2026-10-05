@@ -17,7 +17,7 @@ The planned system uses camera video, YOLO11n Pose body keypoints, movement feat
 | Create the dataset index | Completed: 129 videos |
 | Inspect two videos with `0, 0` fall values | Completed using sampled frames |
 | Extract and inspect Coffee_room_01/video (1) poses | Completed |
-| Test pose extraction on Home_01/video (1) | Pending |
+| Test pose extraction on Home_01/video (1) | Completed |
 | Extract poses for all included videos | Pending |
 | Define final training labels and missing-data handling | Pending |
 | Create data splits and temporal features | Pending |
@@ -46,7 +46,9 @@ The planned system uses camera video, YOLO11n Pose body keypoints, movement feat
 
 | File or folder | Purpose |
 | --- | --- |
-| `check_dataset.py` | Check folders, paired files, video decoding, annotation counts, frame order, and duplicates. Its optional Step 16 writes cleaned copies. |
+| `check_dataset.py` | Read-only checks of folders, paired files, video decoding, annotation counts, frame order, and duplicates. Does not modify files. |
+| `clean_annotations.py` | Removes exact duplicate annotation rows and saves validated copies in separate cleaned folders, preserving the originals. |
+| `config.py` | Stores shared settings, including the dataset root, selected subset, pose-test video, and output paths. |
 | `build_dataset_index.py` | Validate selected annotations and create one CSV row per included video. |
 | `extract_pose.py` | Run pose inference on one indexed video and save numerical keypoints and a preview. |
 | `dataset_index.csv` | Index of 129 included videos and their selected annotations. |
@@ -109,7 +111,7 @@ Their **60 videos remain unchanged and outside the index**. Missing annotations 
 | 13 | Lists folders containing TXT files. | Locates annotations and distinguishes them from README files. |
 | 14 | Searches Office and Lecture_room for non-AVI files. | Checks for possible annotations in another format. |
 | 15 | Removes exact duplicate frame rows in memory and rechecks the sequence. | Determines whether duplicate rows explain a mismatch; changes no files. |
-| 16 | Saves validated cleaned annotations in a separate directory. | Removes redundant rows while preserving original files. |
+| 1–16 | describe how the checking workflow developed. In the current version, `check_dataset.py` performs read-only checks. Cleanup is handled separately by `clean_annotations.py`. |
 
 ### Path errors corrected during checking
 
@@ -243,8 +245,8 @@ The last two rows partition the 129 videos. These are video-level counts, not co
 | --- | --- |
 | `video_id` | Subset-qualified ID, such as `Home_01/video (1)`. |
 | `dataset` | Subset name. |
-| `video_path` | Absolute path to the video. |
-| `annotation_path` | Absolute path to the selected annotation. |
+| `video_path` | Path to the video relative to `DATASET_ROOT`. |
+| `annotation_path` | Path to the selected annotation relative to `DATASET_ROOT`. |
 | `frame_count` | Frame count reported by OpenCV. |
 | `fall_start` | First fall metadata value. |
 | `fall_end` | Second fall metadata value. |
@@ -253,7 +255,7 @@ The last two rows partition the 129 videos. These are video-level counts, not co
 
 The review column is limited: earlier inspection of Coffee_room_01/video (26) is documented here but was not recorded in that field. Subset-qualified IDs prevent confusion between videos with the same filename.
 
-The CSV is saved beside the script as `dataset_index.csv`. Rebuilding it overwrites that output. Because it contains absolute paths, regenerate it when using a different dataset location.
+The CSV is saved beside the script as `dataset_index.csv`. Rebuilding it overwrites that output. Video and annotation paths are relative to `DATASET_ROOT`, which is configured in `config.py`. Teammates can change the dataset root without rebuilding the CSV, provided the dataset's internal folder structure stays the same..
 
 ## 9. First pose-extraction test
 
@@ -384,7 +386,6 @@ The audio messages did not prevent the successful video checks and output saves 
 
 | Item | Next action |
 | --- | --- |
-| Home camera view | Run and review the pending Home_01 pose test. |
 | Remaining indexed videos | Extract poses and record per-video quality results. |
 | Missing joints and multiple detections | Define handling that preserves frame alignment. |
 | Zero-zero metadata | Complete the interpretation and review required before assigning final training labels. |
