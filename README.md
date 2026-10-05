@@ -111,7 +111,9 @@ Their **60 videos remain unchanged and outside the index**. Missing annotations 
 | 13 | Lists folders containing TXT files. | Locates annotations and distinguishes them from README files. |
 | 14 | Searches Office and Lecture_room for non-AVI files. | Checks for possible annotations in another format. |
 | 15 | Removes exact duplicate frame rows in memory and rechecks the sequence. | Determines whether duplicate rows explain a mismatch; changes no files. |
-| 1–16 | describe how the checking workflow developed. In the current version, `check_dataset.py` performs read-only checks. Cleanup is handled separately by `clean_annotations.py`. |
+| 16 | Cleanup now runs separately in `clean_annotations.py`. | Saves validated cleaned copies while preserving originals. |
+
+Steps 1–16 describe how the checking workflow developed. In the current version, `check_dataset.py` performs read-only checks.
 
 ### Path errors corrected during checking
 
@@ -349,21 +351,38 @@ Coordinate availability and confidence do not guarantee precise joint positions.
 
 ## 11. Running the current scripts
 
-| Order | Script | Before running |
-| ---: | --- | --- |
-| 1 | `check_dataset.py` | Select the correct subset and annotation folder. Leave Step 16 commented out for read-only checks. |
-| 2 | `build_dataset_index.py` | Set the dataset root and ensure both Home cleaned folders exist. |
-| 3 | `extract_pose.py` | Select an indexed `video_id` and its output directory. |
+Set the shared settings in `config.py` before running:
 
-From the project directory with the appropriate Python environment active:
+| Setting | Purpose |
+| --- | --- |
+| `DATASET_ROOT` | Location of the extracted FallDataset folder on your computer. |
+| `CHECK_DATASET` | Subset to inspect with `check_dataset.py`. |
+| `POSE_VIDEO_ID` | Indexed video to process, such as `Home_01/video (1)`. |
+| `POSE_OUTPUT_NAME` | Folder name for the pose-test results inside `outputs/`. |
+
+Run the scripts from the project directory with your Python environment active.
+
+| Order | Script | When to run |
+| ---: | --- | --- |
+| 1 | `clean_annotations.py` | If the cleaned Home annotation folders do not exist. Preserves the originals. |
+| 2 | `check_dataset.py` | Check the selected subset without modifying files. |
+| 3 | `build_dataset_index.py` | Build the index using original Coffee annotations and cleaned Home annotations. |
+| 4 | `extract_pose.py` | Extract poses from the video selected in `config.py`. |
+
+If the cleaned Home folders already exist, start at Step 2.
 
 ```bash
+python clean_annotations.py
 python check_dataset.py
 python build_dataset_index.py
 python extract_pose.py
 ```
 
-The check script is still an incremental, subset-specific script. Step 16 was adapted from Home_01 to Home_02; its guard and configured paths must agree before it is enabled. The extraction script currently processes one video, not the whole dataset.
+To check another subset, change `CHECK_DATASET` in `config.py` and rerun `check_dataset.py`.
+
+Cleanup runs separately in `clean_annotations.py`; there is no Step 16 to uncomment in the current check script. Pose extraction currently processes one selected video per run.
+
+For installation instructions, see [Portable setup](PORTABLE_SETUP.md).
 
 ## 12. Interpreting console messages
 
