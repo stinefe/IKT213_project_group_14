@@ -219,3 +219,24 @@ __marimo__/
 
 *.zip
 FallDataset.zip
+
+# Extracted datasets
+FallDataset/
+dataset/
+datasets/
+Coffee_room_01/
+Coffee_room_02/
+Home_01/
+Home_02/
+Office/
+Lecture_room/
+
+# Generated results
+outputs/
+runs/
+
+# Downloaded model weights
+*.pt
+
+# Local test video
+test_video.mp4
