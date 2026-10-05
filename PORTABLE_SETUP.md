@@ -13,7 +13,8 @@ It preserves the current YOLO inference settings and missing-keypoint policy.
 | `build_dataset_index.py` | Validate and index the same 129 videos using relative paths |
 | `extract_pose.py` | Resolve relative CSV paths using the configured dataset root |
 | `requirements.txt` | Direct dependencies; versions not yet pinned |
-| `gitignore_additions.txt` | Rules to append to your existing `.gitignore` |
+| `gitignore_additions.txt` | 2. The repository's `.gitignore` already excludes dataset folders,
+   generated outputs, downloaded model weights, and the local test video.| 
 
 ## Install this update
 
@@ -103,8 +104,8 @@ A rerun with different dependency versions can produce different detections.
 
   Do not guess version numbers. The supplied requirements file lists direct
   dependencies only. Jetson deployment dependencies need separate validation.
-- Review `pose_test.py` too: it was visible on GitHub but was not supplied for
-  this update. Any personal paths there should also use the shared config.
+- `pose_test.py` is an earlier experiment and is not required for this
+  workflow. Use `extract_pose.py` for the documented pose test.
 - Update the existing README with this setup and the Home test results.
 - Review the files included in the commit. Ignore rules do not untrack files
   that Git already tracks. Dataset videos, generated outputs and model weights
