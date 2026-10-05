@@ -1,27 +1,30 @@
-from pathlib import Path
+from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, POSE_VIDEO_ID,
+                    POSE_OUTPUT_NAME, require_dataset_root, resolve_dataset_path)
 import csv
 import numpy as np
 from ultralytics import YOLO
 
 #1# Find the video in our dataset index
-project = Path(__file__).resolve().parent
-index_file = project / "dataset_index.csv"
-video_id = "Coffee_room_01/video (1)"
+require_dataset_root()
+index_file = INDEX_FILE
+video_id = POSE_VIDEO_ID
 
 with open(index_file, "r", encoding="utf-8-sig", newline="") as file:
     records = list(csv.DictReader(file))
 
-record = next(row for row in records if row["video_id"] == video_id)
-video = Path(record["video_path"])
+record = next((row for row in records if row["video_id"] == video_id), None)
+if record is None:
+    raise ValueError(f"Video ID not found in dataset_index.csv: {video_id}")
+video = resolve_dataset_path(record["video_path"])
 expected_frames = int(record["frame_count"])
 
 if not video.is_file():
     raise FileNotFoundError(video)
 
 #2# Load the pretrained pose model
-model = YOLO("yolo11n-pose.pt")
+model = YOLO(str(MODEL_PATH))
 
-output_folder = project / "outputs" / "pose_check_coffee01_video01"
+output_folder = OUTPUTS_DIR / POSE_OUTPUT_NAME
 output_folder.mkdir(parents=True, exist_ok=True)
 
 #3# Process every frame and save a skeleton preview video

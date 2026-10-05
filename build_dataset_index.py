@@ -1,17 +1,11 @@
-from pathlib import Path
+from config import DATASET_ROOT, INDEX_FILE, ANNOTATION_FOLDERS, require_dataset_root
 import csv
 import cv2
 
-#1# Dataset location
-root = Path(r"C:\Users\haifa\Desktop\FallDataset")
-
-#2# Annotation folder to use for each dataset
-datasets = {
-    "Coffee_room_01": "Annotation_files",
-    "Coffee_room_02": "Annotations_files",
-    "Home_01": "Annotation_files_cleaned",
-    "Home_02": "Annotation_files_cleaned",
-}
+#1# Shared dataset location and annotation folders
+require_dataset_root()
+root = DATASET_ROOT
+datasets = ANNOTATION_FOLDERS
 
 # These two videos were reviewed using sampled frames only
 reviewed_samples = {
@@ -91,8 +85,8 @@ for name, annotation_folder in datasets.items():
         records.append({
             "video_id": f"{name}/{video.stem}",
             "dataset": name,
-            "video_path": str(video),
-            "annotation_path": str(label),
+            "video_path": video.relative_to(root).as_posix(),
+            "annotation_path": label.relative_to(root).as_posix(),
             "frame_count": frame_count,
             "fall_start": start,
             "fall_end": end,
@@ -109,7 +103,7 @@ if len(records) != 129:
     raise ValueError(f"Expected 129 videos, found {len(records)}")
 
 #5# Save beside this Python script
-output = Path(__file__).resolve().parent / "dataset_index.csv"
+output = INDEX_FILE
 
 with open(output, "w", newline="", encoding="utf-8-sig") as file:
     writer = csv.DictWriter(file, fieldnames=list(records[0]))

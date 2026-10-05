@@ -1,14 +1,18 @@
-from pathlib import Path
+from config import DATASET_ROOT, CHECK_DATASET, ANNOTATION_FOLDERS, require_dataset_root
 import cv2
 
-#1# Location of Coffee_room_01
-dataset = Path(
-    r"C:\Users\haifa\Desktop\FallDataset\Home_02\Home_02"
-)
-
-#2# creates the path to the Videos and annotation folder
+#1# Choose the subset in config.py; this script only reads files.
+require_dataset_root()
+dataset = DATASET_ROOT / CHECK_DATASET / CHECK_DATASET
 videos_folder = dataset / "Videos"
-labels_folder = dataset / "Annotation_files_cleaned"
+labels_folder = dataset / ANNOTATION_FOLDERS[CHECK_DATASET]
+if not videos_folder.is_dir() or not labels_folder.is_dir():
+    raise FileNotFoundError(
+        f"Missing videos or annotations in {dataset}. "
+        "For Home subsets, run clean_annotations.py first."
+    )
+if not any(videos_folder.glob("*.avi")) or not any(labels_folder.glob("*.txt")):
+    raise ValueError(f"No AVI videos or TXT annotations found in {dataset}")
 
 print("RUNNING FILE:", __file__)
 print("VIDEO PATH:", repr(str(videos_folder)))
@@ -165,7 +169,7 @@ for label in sorted(labels_folder.glob("*.txt")):
 
 
 #11# Find all Videos folders in the dataset
-dataset_root = Path(r"C:\Users\haifa\Desktop\FallDataset")
+dataset_root = DATASET_ROOT
 
 for folder in sorted(dataset_root.rglob("Videos")):
     if folder.is_dir():
@@ -216,6 +220,10 @@ for folder in label_locations:
 for name in ["Office", "Lecture_room"]:
     folder = dataset_root / name
 
+    if not folder.is_dir():
+        print("MISSING FOLDER:", name)
+        continue
+
     other_files = sorted(
         file for file in folder.rglob("*")
         if file.is_file() and file.suffix.lower() != ".avi"
@@ -263,46 +271,4 @@ for label in sorted(labels_folder.glob("*.txt")):
         print(label.name, "| Extra copies:", duplicates, "|", result)
 
 
-#16# Save cleaned Home_01 annotations in a separate folder
-if dataset.name != "Home_02":
-    raise ValueError("This step is intended for Home_02.")
-
-clean_folder = dataset / "Annotation_files_cleaned"
-clean_folder.mkdir(exist_ok=True)
-
-for label in sorted(labels_folder.glob("*.txt")):
-    with open(label, "r", encoding="utf-8-sig") as file:
-        lines = file.readlines()
-
-    seen = set()
-    cleaned = []
-    frame_numbers = []
-    removed = 0
-
-    for line in lines:
-        columns = tuple(value.strip() for value in line.strip().split(","))
-
-        if len(columns) == 6:
-            if columns in seen:
-                removed += 1
-                continue
-
-            seen.add(columns)
-            frame_numbers.append(int(columns[0]))
-
-        cleaned.append(line)
-
-    video = videos_folder / (label.stem + ".avi")
-    cap = cv2.VideoCapture(str(video))
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
-
-    if frame_count <= 0 or frame_numbers != list(range(1, frame_count + 1)):
-        print("NOT SAVED — REVIEW:", label.name)
-        continue
-
-    output = clean_folder / label.name
-    with open(output, "w", encoding="utf-8-sig") as file:
-        file.writelines(cleaned)
-
-    print("SAVED:", label.name, "| Duplicate rows removed:", removed)
+# Cleaning is now an explicit, separate step: run clean_annotations.py.

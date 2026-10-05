@@ -1,0 +1,5 @@
+# Direct dependencies. Exact versions from Haifaa's working environment
+# have not been captured yet; this file is not a reproducible version lock.
+numpy
+opencv-python
+ultralytics
