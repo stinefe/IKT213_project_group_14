@@ -17,7 +17,7 @@ from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH,
 KEYPOINT_CONF = 0.5          # same as extract_pose.py
 DETECTION_CONF = 0.25        # same as extract_pose.py
 CORE_JOINTS = [5, 6, 11, 12] # left/right shoulder, left/right hip (COCO order)
-LIMIT = 3                    # testing on 3 videos first; will set to None for all 129 if it works
+LIMIT = None                    # testing on 3 videos first; will set to None for all 129 if it works
 
 POSES_DIR = OUTPUTS_DIR / "poses"
 SUMMARY_FILE = OUTPUTS_DIR / "pose_summary.csv"
