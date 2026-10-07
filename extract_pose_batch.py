@@ -14,10 +14,11 @@ from ultralytics import YOLO
 from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH,
                     require_dataset_root, resolve_dataset_path)
 
+NMS_IOU = 0.5   # merge boxes that overlap >50% (removes duplicate detections of one person)
 KEYPOINT_CONF = 0.5          # same as extract_pose.py
 DETECTION_CONF = 0.25        # same as extract_pose.py
 CORE_JOINTS = [5, 6, 11, 12] # left/right shoulder, left/right hip (COCO order)
-LIMIT = None                    # testing on 3 videos first; will set to None for all 129 if it works
+LIMIT = None                    # testing on 3 videos first; set to None for all 129 only if it works
 
 POSES_DIR = OUTPUTS_DIR / "poses"
 SUMMARY_FILE = OUTPUTS_DIR / "pose_summary.csv"
@@ -30,26 +31,40 @@ def safe_name(video_id):
 
 
 def extract_one(model, video):
-    """Run pose on one video. Returns keypoints (N,17,3) and person counts (N,)."""
+    """Run pose on one video. Returns keypoints (N,17,3) and person counts (N,).
+
+    If YOLO still finds 2+ people after NMS, keep the one closest to where
+    the tracked person was in the previous frame (first frame: most confident).
+    """
     results = model.predict(
         source=str(video), stream=True, device="cpu", imgsz=640,
-        conf=DETECTION_CONF, vid_stride=1, save=False, verbose=False,
+        conf=DETECTION_CONF, iou=NMS_IOU, vid_stride=1, save=False, verbose=False,
     )
     all_keypoints, person_counts = [], []
+    prev_center = None   # where the tracked person was in the previous frame
 
     for result in results:
         count = len(result.boxes) if result.boxes is not None else 0
         points = np.full((17, 3), np.nan, dtype=np.float32)
 
-        if count == 1 and result.keypoints is not None and result.keypoints.conf is not None:
-            xy = result.keypoints.xyn[0].cpu().numpy().copy()
-            conf = result.keypoints.conf[0].cpu().numpy()
+        if count >= 1 and result.keypoints is not None and result.keypoints.conf is not None:
+            centers = result.boxes.xywhn[:, :2].cpu().numpy()   # box centres, normalized
+            if count == 1:
+                idx = 0
+            elif prev_center is None:
+                idx = int(result.boxes.conf.argmax())            # first frame: most confident
+            else:
+                idx = int(np.argmin(np.linalg.norm(centers - prev_center, axis=1)))  # closest to last frame
+            prev_center = centers[idx]
+
+            xy = result.keypoints.xyn[idx].cpu().numpy().copy()
+            conf = result.keypoints.conf[idx].cpu().numpy()
             xy[conf < KEYPOINT_CONF] = np.nan
             points[:, :2] = xy
             points[:, 2] = conf
 
         all_keypoints.append(points)
-        person_counts.append(count)
+        person_counts.append(count)   # raw count after NMS, so we can still see how often it happens
 
     return np.stack(all_keypoints), np.asarray(person_counts)
 
