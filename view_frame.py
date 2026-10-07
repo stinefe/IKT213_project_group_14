@@ -5,6 +5,8 @@ import numpy as np
 from ultralytics import YOLO
 from config import INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, resolve_dataset_path
 
+DETECTION_CONF = 0.25
+NMS_IOU = 0.5            # same as extract_pose_batch.py
 VIDEO_ID = "Home_02/video (58)"
 FRAME = 150              # 1-based frame number
 DETECTION_CONF = 0.25    # try 0.1 to see if more people are found
@@ -30,7 +32,7 @@ cap.release()
 if not ok:
     raise ValueError(f"Could not read frame {FRAME}")
 
-result = YOLO(str(MODEL_PATH)).predict(image, conf=DETECTION_CONF, iou=0.5,
+result = YOLO(str(MODEL_PATH)).predict(image, conf=DETECTION_CONF, iou=NMS_IOU,
                                         imgsz=640, device="cpu", verbose=False)[0]
 
 # 4. Print what YOLO found and save the picture
