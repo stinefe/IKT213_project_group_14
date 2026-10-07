@@ -3,8 +3,7 @@
 Examples (run from the project folder):
     python blur_demo.py                    # default camera (index 0)
     python blur_demo.py --camera 1         # another camera
-    python blur_demo.py "FallDataset/Home_01/Home_01/Videos/video (1).avi"
-    python blur_demo.py "Home_01/Home_01/Videos/video (1).avi"   # relative to DATASET_ROOT
+    python blur_demo.py "Home_01/Home_01/Videos/video (1).avi"   # relative to DATASET_ROOT (Video path can be copied from dataset_index.csv)
     python blur_demo.py "<video>" --skeleton --show-regions
 
 Defaults: only the face blur is shown (no skeleton). Video files are shown 3x larger;
