@@ -485,6 +485,17 @@ Generated outputs are excluded from Git.
 For installation, dataset configuration, and run instructions,
 see [Portable setup](PORTABLE_SETUP.md).
 
-## 15. References and evidence
+## 15. Privacy by design
 
+The system is designed for nursing-home rooms, where residents should not be recorded. It keeps as little visual data as possible.
 
+| Principle | What it means |
+| --- | --- |
+| On-device processing only | Pose estimation and fall detection run locally on the device (target: Jetson Orin Nano). No cloud service or remote server processes the video. |
+| Frames deleted after pose extraction | Each camera frame is kept in memory only while the pose model processes it, then discarded. Frames are not written to disk. |
+| Only keypoints are stored | The only saved data are body keypoints (17 joint coordinates and confidences per frame) and the detection results derived from them. |
+| No video sent anywhere | No video or images leave the device. Network access is only needed once, to download the pretrained model weights. |
+
+During development, the scripts in this repository also read the public FallDataset videos and can save preview videos for checking results. These development outputs stay on the local computer and are excluded from Git; they are not part of the deployed system.
+
+## 16. References and evidence
