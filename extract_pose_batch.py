@@ -1,8 +1,11 @@
-"""Batch pose extraction for all indexed videos (issue #4).
+"""Batch pose extraction for all indexed videos (issues #4, #5, #16).
 
 Runs YOLO11n-Pose on every video in dataset_index.csv, saves one .npz
 per video, and writes a summary CSV with quality numbers per video.
-Same settings and missing-keypoint rules as extract_pose.py.
+
+Differences from extract_pose.py (single-video test):
+- NMS IoU 0.5 and nearest-person tracking for multiple detections (#5)
+- lower detection threshold + keypoint filter against false detections (#16)
 """
 import csv
 import re
@@ -16,9 +19,11 @@ from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH,
 
 NMS_IOU = 0.5   # merge boxes that overlap >50% (removes duplicate detections of one person)
 KEYPOINT_CONF = 0.5          # same as extract_pose.py
-DETECTION_CONF = 0.25        # same as extract_pose.py
+DETECTION_CONF = 0.1       # was 0.25: keep less certain detections (falling person)
 CORE_JOINTS = [5, 6, 11, 12] # left/right shoulder, left/right hip (COCO order)
-LIMIT = None                    # testing on 3 videos first; set to None for all 129 only if it works
+LIMIT = None                   # testing on 3 videos first; set to None for all 129 only if it works
+MIN_GOOD_KEYPOINTS = 5     # a detection counts as a person only if ≥5 joints have conf ≥ 0.5
+                           # set to 0 to turn the filter off
 
 POSES_DIR = OUTPUTS_DIR / "poses"
 SUMMARY_FILE = OUTPUTS_DIR / "pose_summary.csv"
@@ -31,31 +36,40 @@ def safe_name(video_id):
 
 
 def extract_one(model, video):
-    """Run pose on one video. Returns keypoints (N,17,3) and person counts (N,).
+    """Run pose on one video.
 
-    If YOLO still finds 2+ people after NMS, keep the one closest to where
-    the tracked person was in the previous frame (first frame: most confident).
+    Returns keypoints (N,17,3), person counts after filtering (N,),
+    and raw detection counts before filtering (N,).
     """
     results = model.predict(
         source=str(video), stream=True, device="cpu", imgsz=640,
         conf=DETECTION_CONF, iou=NMS_IOU, vid_stride=1, save=False, verbose=False,
     )
-    all_keypoints, person_counts = [], []
-    prev_center = None   # where the tracked person was in the previous frame
+    all_keypoints, person_counts, raw_counts = [], [], []
+    prev_center = None
 
     for result in results:
-        count = len(result.boxes) if result.boxes is not None else 0
         points = np.full((17, 3), np.nan, dtype=np.float32)
+        raw = len(result.boxes) if result.boxes is not None else 0
 
-        if count >= 1 and result.keypoints is not None and result.keypoints.conf is not None:
-            centers = result.boxes.xywhn[:, :2].cpu().numpy()   # box centres, normalized
+        # NEW: keep only detections that look like a real person
+        valid = np.array([], dtype=int)
+        if raw and result.keypoints is not None and result.keypoints.conf is not None:
+            kp_conf = result.keypoints.conf.cpu().numpy()            # shape (raw, 17)
+            good_joints = (kp_conf >= KEYPOINT_CONF).sum(axis=1)     # good joints per detection
+            valid = np.where(good_joints >= MIN_GOOD_KEYPOINTS)[0]
+        count = len(valid)
+
+        if count >= 1:
+            centers = result.boxes.xywhn.cpu().numpy()[valid, :2]   # only valid boxes
             if count == 1:
-                idx = 0
+                pick = 0
             elif prev_center is None:
-                idx = int(result.boxes.conf.argmax())            # first frame: most confident
+                pick = int(np.argmax(result.boxes.conf.cpu().numpy()[valid]))
             else:
-                idx = int(np.argmin(np.linalg.norm(centers - prev_center, axis=1)))  # closest to last frame
-            prev_center = centers[idx]
+                pick = int(np.argmin(np.linalg.norm(centers - prev_center, axis=1)))
+            idx = valid[pick]              # position in YOLO's original list
+            prev_center = centers[pick]
 
             xy = result.keypoints.xyn[idx].cpu().numpy().copy()
             conf = result.keypoints.conf[idx].cpu().numpy()
@@ -64,9 +78,10 @@ def extract_one(model, video):
             points[:, 2] = conf
 
         all_keypoints.append(points)
-        person_counts.append(count)   # raw count after NMS, so we can still see how often it happens
+        person_counts.append(count)
+        raw_counts.append(raw)             # NEW
 
-    return np.stack(all_keypoints), np.asarray(person_counts)
+    return np.stack(all_keypoints), np.asarray(person_counts), np.asarray(raw_counts)
 
 
 def summarize(record, keypoints, counts, status, seconds):
@@ -121,7 +136,7 @@ def main():
             if not video.is_file():
                 raise FileNotFoundError(video)
 
-            keypoints, counts = extract_one(model, video)
+            keypoints, counts, raw_counts = extract_one(model, video)
 
             expected = int(record["frame_count"])
             if len(keypoints) != expected:
@@ -138,6 +153,9 @@ def main():
                 fall_end=int(record["fall_end"]),
                 annotation_status=record["annotation_status"],
                 keypoint_confidence_threshold=KEYPOINT_CONF,
+                raw_person_counts=raw_counts,
+                min_good_keypoints=MIN_GOOD_KEYPOINTS,
+                detection_conf=DETECTION_CONF,
             )
             seconds = time.time() - started
             summary.append(summarize(record, keypoints, counts, "ok", seconds))

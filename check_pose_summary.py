@@ -2,7 +2,13 @@ import csv
 import numpy as np
 from config import OUTPUTS_DIR
 
-with open(OUTPUTS_DIR / "pose_summary.csv", encoding="utf-8") as f:
+import sys
+RUN = sys.argv[1] if len(sys.argv) > 1 else "" # when running in terminal add the file number name
+POSES_DIR = OUTPUTS_DIR / (f"poses_{RUN}" if RUN else "poses")
+SUMMARY_FILE = OUTPUTS_DIR / (f"pose_summary_{RUN}.csv" if RUN else "pose_summary.csv")
+print("Checking:", POSES_DIR.name)
+
+with open(SUMMARY_FILE, encoding="utf-8") as f:
     rows = [r for r in csv.DictReader(f) if r["status"] in ("ok", "cached")]
 
 frames = np.array([int(r["frames"]) for r in rows])
@@ -28,7 +34,7 @@ for r in sorted(rows, key=lambda r: -int(r["multi_person"]))[:5]:
     from pathlib import Path
 CORE = [5, 6, 11, 12]
 none_f = multi_f = lowconf_f = total_f = 0
-for npz in (OUTPUTS_DIR / "poses").glob("*.npz"):
+for npz in (POSES_DIR).glob("*.npz"):
     d = np.load(npz)
     s, e = int(d["fall_start"]), int(d["fall_end"])
     if s == 0:
