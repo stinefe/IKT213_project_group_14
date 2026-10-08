@@ -6,8 +6,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import make_pipeline
 
-from config import OUTPUTS_DIR
-from features import FEATURE_NAMES, window_features
+from falldet.config import OUTPUTS_DIR
+from falldet.features import FEATURE_NAMES, window_features
 
 USE_DUMMY_DATA = True                          # switch to False when #6 and #7 are done
 WINDOWS_FILE = OUTPUTS_DIR / "windows.npz"     # from #6: X (n,30,17,3), y (n,), video_id (n,)

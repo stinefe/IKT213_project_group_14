@@ -18,8 +18,8 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
-from config import DATASET_ROOT, MODEL_PATH
-from face_blur import blur_regions, regions_from_result
+from falldet.config import DATASET_ROOT, MODEL_PATH
+from falldet.face_blur import blur_regions, regions_from_result
 
 VIDEO_SCALE = 3.0    # default enlargement for video files (dataset videos are 320x240)
 CAMERA_SCALE = 1.0   # default for camera input

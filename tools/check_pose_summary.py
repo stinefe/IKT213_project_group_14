@@ -1,6 +1,6 @@
 import csv
 import numpy as np
-from config import OUTPUTS_DIR
+from falldet.config import OUTPUTS_DIR
 
 import sys
 RUN = sys.argv[1] if len(sys.argv) > 1 else "" # when running in terminal add the file number name

@@ -3,7 +3,7 @@ import csv
 import cv2
 import numpy as np
 from ultralytics import YOLO
-from config import INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, resolve_dataset_path
+from falldet.config import INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, resolve_dataset_path
 
 DETECTION_CONF = 0.25
 NMS_IOU = 0.5            # same as extract_pose_batch.py
