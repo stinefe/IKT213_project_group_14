@@ -1,4 +1,4 @@
-from config import DATASET_ROOT, CHECK_DATASET, ANNOTATION_FOLDERS, require_dataset_root
+from falldet.config import DATASET_ROOT, CHECK_DATASET, ANNOTATION_FOLDERS, require_dataset_root
 import cv2
 
 #1# Choose the subset in config.py; this script only reads files.

@@ -1,6 +1,6 @@
 """Recreate cleaned Home annotations; preserve original files and metadata."""
 import cv2
-from config import DATASET_ROOT, require_dataset_root
+from falldet.config import DATASET_ROOT, require_dataset_root
 
 
 def clean_lines(lines, frame_count):

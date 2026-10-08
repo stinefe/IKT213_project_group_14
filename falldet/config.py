@@ -1,10 +1,10 @@
 """Shared paths. Change DATASET_ROOT here if your dataset is elsewhere."""
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Default: FallDataset sits next to the project folder.
 DATASET_ROOT = PROJECT_ROOT.parent / "FallDataset"
-INDEX_FILE = PROJECT_ROOT / "dataset_index.csv"
+INDEX_FILE = PROJECT_ROOT / "data" / "dataset_index.csv"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 MODEL_PATH = PROJECT_ROOT / "yolo11n-pose.pt"
 

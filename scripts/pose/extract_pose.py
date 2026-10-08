@@ -1,4 +1,4 @@
-from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, POSE_VIDEO_ID,
+from falldet.config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH, POSE_VIDEO_ID,
                     POSE_OUTPUT_NAME, require_dataset_root, resolve_dataset_path)
 import csv
 import numpy as np
