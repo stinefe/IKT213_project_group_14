@@ -5,6 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Default: FallDataset sits next to the project folder.
 DATASET_ROOT = PROJECT_ROOT.parent / "FallDataset"
 INDEX_FILE = PROJECT_ROOT / "data" / "dataset_index.csv"
+SPLITS_FILE = PROJECT_ROOT / "data" / "splits.csv"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 MODEL_PATH = PROJECT_ROOT / "yolo11n-pose.pt"
 
