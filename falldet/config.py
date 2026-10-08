@@ -1,4 +1,5 @@
-"""Shared paths. Change DATASET_ROOT here if your dataset is elsewhere."""
+"""Shared project settings: paths, dataset options and MQTT alerts.
+Change DATASET_ROOT here if your dataset is elsewhere."""
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -18,6 +19,11 @@ ANNOTATION_FOLDERS = {
 CHECK_DATASET = "Home_02"
 POSE_VIDEO_ID = "Home_01/video (1)"
 POSE_OUTPUT_NAME = "pose_check_home01_video01"
+
+MQTT_BROKER = "localhost"      # later: the Jetson's IP (or "localhost" on the Jetson itself)
+MQTT_PORT = 1883
+MQTT_TOPIC = "falldetection/alerts"          # full alert as JSON
+MQTT_STATUS_TOPIC = "falldetection/status"   # simple "fall" / "ok" for LED indicators
 
 
 def require_dataset_root():
