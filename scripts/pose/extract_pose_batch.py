@@ -14,7 +14,7 @@ import time
 import numpy as np
 from ultralytics import YOLO
 
-from config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH,
+from falldet.config import (INDEX_FILE, OUTPUTS_DIR, MODEL_PATH,
                     require_dataset_root, resolve_dataset_path)
 
 NMS_IOU = 0.5   # merge boxes that overlap >50% (removes duplicate detections of one person)

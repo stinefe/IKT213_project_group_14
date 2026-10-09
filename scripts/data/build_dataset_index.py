@@ -1,4 +1,4 @@
-from config import DATASET_ROOT, INDEX_FILE, ANNOTATION_FOLDERS, require_dataset_root
+from falldet.config import DATASET_ROOT, INDEX_FILE, ANNOTATION_FOLDERS, require_dataset_root
 import csv
 import cv2
 
