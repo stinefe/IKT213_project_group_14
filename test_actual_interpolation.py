@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from config import OUTPUTS_DIR
+from falldet.config import OUTPUTS_DIR
 from pose_preprocessing import interpolate_short_gaps
 from test_postfall_actual_fps import (
     WINDOW_LENGTH,
