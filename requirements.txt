@@ -4,3 +4,4 @@ numpy
 opencv-python
 ultralytics==8.4.157
 scikit-learn==1.7.2
+paho-mqtt==2.1.0
