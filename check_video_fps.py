@@ -4,7 +4,7 @@ from collections import Counter
 
 import cv2
 
-from config import INDEX_FILE, require_dataset_root, resolve_dataset_path
+from falldet.config import INDEX_FILE, require_dataset_root, resolve_dataset_path
 
 require_dataset_root()
 
