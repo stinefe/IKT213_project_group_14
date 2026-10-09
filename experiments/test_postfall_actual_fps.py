@@ -2,7 +2,8 @@ from pathlib import Path
 import math
 import numpy as np
 
-POSES_DIR = Path(__file__).resolve().parent / "outputs" / "poses"
+from falldet.config import OUTPUTS_DIR
+POSES_DIR = OUTPUTS_DIR / "poses"
 
 WINDOW_LENGTH = 30
 STEP_SIZE = 5
@@ -134,9 +135,8 @@ def main():
             window_start = start + 1
             window_end = window_start + WINDOW_LENGTH - 1
 
-            # Exclude only windows entirely after the fall.
-            # Windows containing the fall and landing are allowed.
-            if window_start > fall_end:
+            # Exclude windows containing any frames after the fall ends.
+            if window_end > fall_end:
                 continue
 
             overlap = max(

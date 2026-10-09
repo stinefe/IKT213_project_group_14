@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 from falldet.config import OUTPUTS_DIR
-from test_postfall_actual_fps import (
+from experiments.test_postfall_actual_fps import (
     WINDOW_LENGTH,
     STEP_SIZE,
     CORE_JOINTS,

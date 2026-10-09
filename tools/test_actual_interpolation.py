@@ -2,8 +2,8 @@ import math
 import numpy as np
 
 from falldet.config import OUTPUTS_DIR
-from pose_preprocessing import interpolate_short_gaps
-from test_postfall_actual_fps import (
+from falldet.pose_preprocessing import interpolate_short_gaps
+from experiments.test_postfall_actual_fps import (
     WINDOW_LENGTH,
     STEP_SIZE,
     FPS_BY_DATASET,
