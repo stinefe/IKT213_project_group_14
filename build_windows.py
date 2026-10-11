@@ -3,7 +3,7 @@
 import numpy as np
 
 from falldet.config import OUTPUTS_DIR
-from pose_preprocessing import interpolate_short_gaps
+from falldet.pose_preprocessing import interpolate_short_gaps
 
 POSES_DIR = OUTPUTS_DIR / "poses"
 OUTPUT_FILE = OUTPUTS_DIR / "windows.npz"

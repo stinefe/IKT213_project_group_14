@@ -2,7 +2,8 @@ from pathlib import Path
 import math
 import numpy as np
 
-POSES_DIR = Path(__file__).resolve().parent / "outputs" / "poses"
+from falldet.config import OUTPUTS_DIR
+POSES_DIR = OUTPUTS_DIR / "poses"
 
 WINDOW_LENGTH = 30
 STEP_SIZE = 10

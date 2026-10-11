@@ -1,7 +1,8 @@
 from pathlib import Path
 import numpy as np
 
-POSES_DIR = Path(__file__).resolve().parent / "outputs" / "poses"
+from falldet.config import OUTPUTS_DIR
+POSES_DIR = OUTPUTS_DIR / "poses"
 
 files = sorted(POSES_DIR.glob("*.npz"))
 

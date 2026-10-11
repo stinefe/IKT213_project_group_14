@@ -2,7 +2,8 @@ from pathlib import Path
 import numpy as np
 from collections import Counter
 
-POSES_DIR = Path("outputs/poses")
+from falldet.config import OUTPUTS_DIR
+POSES_DIR = OUTPUTS_DIR / "poses"
 CORE_JOINTS = [5, 6, 11, 12]
 
 gap_lengths = []
