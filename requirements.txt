@@ -2,6 +2,7 @@
 # have not been captured yet; this file is not a reproducible version lock.
 numpy
 opencv-python
+pandas
 ultralytics==8.4.157
 scikit-learn==1.7.2
 paho-mqtt==2.1.0
