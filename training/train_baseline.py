@@ -9,7 +9,7 @@ from sklearn.pipeline import make_pipeline
 from falldet.config import OUTPUTS_DIR, SPLITS_FILE
 from falldet.features import FEATURE_NAMES, window_features
 
-USE_DUMMY_DATA = True                          # switch to False when #6 and #7 are done
+USE_DUMMY_DATA = False
 WINDOWS_FILE = OUTPUTS_DIR / "windows.npz"     # from #6: X (n,30,17,3), y (n,), video_id (n,)
 
 
