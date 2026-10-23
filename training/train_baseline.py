@@ -1,16 +1,19 @@
 """Baseline fall classifier. Plugs into #6 (windows.npz) and #7 (splits.csv)."""
 import csv
+import joblib                                   # NEW
 import numpy as np
+import sklearn                                  # NEW
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import make_pipeline
 
-from falldet.config import OUTPUTS_DIR, SPLITS_FILE
+from falldet.config import OUTPUTS_DIR, PROJECT_ROOT, SPLITS_FILE   # NEW: PROJECT_ROOT
 from falldet.features import FEATURE_NAMES, window_features
 
-USE_DUMMY_DATA = True                          # switch to False when #6 and #7 are done
+USE_DUMMY_DATA = False
 WINDOWS_FILE = OUTPUTS_DIR / "windows.npz"     # from #6: X (n,30,17,3), y (n,), video_id (n,)
+MODEL_OUT = PROJECT_ROOT / "models" / "fall_rf.joblib"   # NEW: trained model for the Jetson
 
 
 def load_dummy(n=600, n_videos=40, seed=0):
@@ -59,6 +62,21 @@ def main():
     importances = model[-1].feature_importances_
     for name, imp in sorted(zip(FEATURE_NAMES, importances), key=lambda t: -t[1]):
         print(f"  {name:20} {imp:.2f}")
+
+    # 5. NEW: save the model + the info the Jetson needs to use it correctly
+    if not USE_DUMMY_DATA:
+        MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(
+            {
+                "model": model,
+                "feature_names": FEATURE_NAMES,
+                "window_frames": X.shape[1],          # 30
+                "sklearn_version": sklearn.__version__,
+            },
+            MODEL_OUT,
+            compress=3,
+        )
+        print(f"\nSaved model: {MODEL_OUT}")
 
 
 if __name__ == "__main__":
