@@ -1,10 +1,15 @@
-"""Find incorrectly classified validation windows."""
+"""Find incorrectly classified validation windows and save metrics."""
+
 import csv
 
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    precision_recall_fscore_support,
+)
 
 from falldet.config import OUTPUTS_DIR, PROJECT_ROOT, SPLITS_FILE
 from falldet.features import FEATURE_NAMES, window_features
@@ -23,6 +28,7 @@ def main():
         rows = list(csv.DictReader(f))
 
     splits = {row["video_id"]: row["split"] for row in rows}
+
     if len(splits) != len(rows):
         raise ValueError("Duplicate video IDs in splits.csv")
 
@@ -31,7 +37,9 @@ def main():
 
         unknown = set(video_ids) - set(splits)
         if unknown:
-            raise ValueError(f"Videos missing from splits.csv: {sorted(unknown)}")
+            raise ValueError(
+                f"Videos missing from splits.csv: {sorted(unknown)}"
+            )
 
         # Select validation windows only.
         indices = np.array([
@@ -42,14 +50,17 @@ def main():
         if len(indices) == 0:
             raise ValueError("No validation windows found")
 
+        # Read the pose windows once.
         X = data["X"]
 
         if X.shape[1] != saved["window_frames"]:
             raise ValueError("Window length does not match the model")
 
+        # Calculate features and predict labels.
         features = np.stack([
             window_features(X[i]) for i in indices
         ])
+
         true = data["y"][indices]
         predicted = model.predict(features)
 
@@ -60,33 +71,90 @@ def main():
             "window_end": data["window_end"][indices],
             "fps": data["fps"][indices],
             "true_label": np.where(true == 1, "Fall", "Normal"),
-            "predicted_label": np.where(predicted == 1, "Fall", "Normal"),
-            "core_missing_fraction": data["core_missing_fraction"][indices],
+            "predicted_label": np.where(
+                predicted == 1, "Fall", "Normal"
+            ),
+            "core_missing_fraction":
+                data["core_missing_fraction"][indices],
         })
 
     # Include feature values to help investigate errors.
     for column, name in enumerate(FEATURE_NAMES):
         results[name] = features[:, column]
 
+    # Select incorrectly classified windows.
     errors = results.loc[true != predicted].copy()
+
     errors["error_type"] = np.where(
         errors["true_label"] == "Fall",
         "False Negative",
         "False Positive",
     )
+
     errors["review_notes"] = ""
     errors = errors.sort_values(["video_id", "window_start"])
+
+    # Save errors. Keep manual notes in a separate reviewed file.
+    OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
     output = OUTPUTS_DIR / "validation_errors.csv"
     errors.to_csv(output, index=False, encoding="utf-8-sig")
 
+    # Calculate window-level metrics.
+    # Fall (1) is the positive class.
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        true,
+        predicted,
+        average="binary",
+        pos_label=1,
+        zero_division=0,
+    )
+
+    accuracy = accuracy_score(true, predicted)
+
+    matrix = confusion_matrix(true, predicted, labels=[0, 1])
+    tn, fp, fn, tp = matrix.ravel()
+
+    # Save metrics as values between 0 and 1.
+    metrics = pd.DataFrame([{
+        "split": "val",
+        "validation_windows": len(indices),
+        "normal_windows": int(np.sum(true == 0)),
+        "fall_windows": int(np.sum(true == 1)),
+        "true_negatives": int(tn),
+        "false_positives": int(fp),
+        "false_negatives": int(fn),
+        "true_positives": int(tp),
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1,
+        "accuracy": accuracy,
+    }])
+
+    metrics_output = OUTPUTS_DIR / "validation_metrics.csv"
+    metrics.to_csv(
+        metrics_output,
+        index=False,
+        encoding="utf-8-sig",
+    )
+
+    # Print results.
     print("Validation windows:", len(indices))
     print("Confusion matrix (Normal, Fall):")
-    print(confusion_matrix(true, predicted, labels=[0, 1]))
+    print(matrix)
+
     print("\nErrors:")
     print(errors["error_type"].value_counts())
     print("Videos with errors:", errors["video_id"].nunique())
-    print("\nSaved:", output)
+
+    print("\nWindow-level metrics (Fall):")
+    print(f"Precision: {precision:.2%}")
+    print(f"Recall:    {recall:.2%}")
+    print(f"F1-score:  {f1:.2%}")
+    print(f"Accuracy:  {accuracy:.2%}")
+
+    print("\nErrors saved:", output)
+    print("Metrics saved:", metrics_output)
 
 
 if __name__ == "__main__":
