@@ -3,6 +3,8 @@
 Pipeline per frame (same steps as the training data):
   camera frame -> YOLO11n-Pose -> pick one person -> keypoints (17, 3)
   -> keep the last WINDOW frames -> window_features() -> classifier -> FALL / OK
+Display only: blurred copy of the frame (faces hidden) + skeleton + label.
+The sharp frame is used for analysis only and is never shown or saved.
 
 Run from the repo root:   python live_detect.py
 Press q to quit.
@@ -24,6 +26,8 @@ try:
     from falldet.features import window_features  # if features.py lives inside falldet/
 except ImportError:
     from features import window_features           # if features.py is in the repo root
+from falldet.face_blur import blur_faces_from_result  # privacy blur for the display copy
+from alerts.alerts import AlertClient                # MQTT alerts (issue #11)
 
 # ---- MUST MATCH TRAINING (check train_baseline.py) --------------------------
 CLASSIFIER_FILE = "models/fall_rf.joblib"      # Random Forest saved by train_baseline.py
@@ -46,11 +50,6 @@ MIN_GOOD_KEYPOINTS = 5
 HEADLESS = os.environ.get("HEADLESS") == "1"   # no window, print state changes
 DEVICE = os.environ.get("DEVICE") or ("0" if torch.cuda.is_available() else "cpu")
 # ------------------------------------------------------------------------------
-
-
-def send_alert():
-    """Called once per confirmed fall. Later: publish to MQTT here (issue #11)."""
-    print(time.strftime("%H:%M:%S"), "FALL CONFIRMED -> alert")
 
 
 def open_camera():
@@ -121,6 +120,10 @@ def main():
     if not cap.isOpened():
         raise SystemExit("Could not open camera")
 
+    alerts = AlertClient()
+    alerts.start()
+    fallen_since = None   # when the current fall was confirmed
+
     window = deque(maxlen=WINDOW)  # last WINDOW frames of keypoints
     prev_center = None
     last_t = time.time()
@@ -179,12 +182,14 @@ def main():
                 state = "NORMAL"                  # came back up -> bending, not a fall
             elif now - check_start >= CONFIRM_SECONDS:
                 state, upright_since = "FALLEN", None
-                send_alert()
+                fallen_since = now
+                alerts.fall(torso_angle=torso_angle)      # once per fall
         elif state == "FALLEN":
             if upright:
                 upright_since = upright_since or now
                 if now - upright_since >= RECOVER_SECONDS:
                     state = "NORMAL"              # standing again for a while
+                    alerts.recovered(upright_since - fallen_since)
             else:
                 upright_since = None              # still down -> keep alarm on
 
@@ -200,6 +205,7 @@ def main():
         now = time.time()
         fps = 1.0 / max(now - last_t, 1e-6)
         last_t = now
+        alerts.heartbeat(state, fps)   # "I'm alive" every 10 s
 
         if HEADLESS:   # no screen (Docker / room corner): print when the state changes
             if state != last_printed:
@@ -208,8 +214,11 @@ def main():
                 last_printed = state
             continue
 
-        # draw skeleton + label + real FPS
-        shown = result.plot()
+        # Privacy: YOLO already ran on the SHARP frame (above). Only the copy we show
+        # is blurred, then the skeleton is drawn on top of the blurred copy.
+        # (result.plot() alone would draw on the sharp original, so img= is required.)
+        shown = blur_faces_from_result(frame, result)
+        shown = result.plot(img=shown)
         cv2.putText(shown, label, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.4, color, 3)
         angle_txt = "?" if torso_angle is None else f"{torso_angle:.0f}"
         cv2.putText(shown, f"{fps:.1f} fps (trained on {TRAIN_FPS}) | torso {angle_txt} deg",
@@ -218,6 +227,7 @@ def main():
         if cv2.waitKey(1) == ord("q"):
             break
 
+    alerts.stop()
     cap.release()
     if not HEADLESS:
         cv2.destroyAllWindows()
