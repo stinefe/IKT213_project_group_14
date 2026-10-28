@@ -1,4 +1,5 @@
-from falldet.config import DATASET_ROOT, INDEX_FILE, ANNOTATION_FOLDERS, require_dataset_root
+from falldet.config import (DATASET_ROOT, INDEX_FILE, ANNOTATION_FOLDERS, OWN_ANNOTATION_DATASETS,
+                            require_dataset_root)
 import csv
 import cv2
 
@@ -92,15 +93,66 @@ for name, annotation_folder in datasets.items():
             "fall_end": end,
             "annotation_status": annotation_status,
             "visual_review": review_status,
+            "annotation_source": "original",
         })
 
         included += 1
 
     print(name, "| Included videos:", included)
 
+
+for name, inner in OWN_ANNOTATION_DATASETS.items():
+    folder = root / name / inner
+    videos_folder = folder / "Videos" if (folder / "Videos").is_dir() else folder
+    labels_folder = folder / "Annotation_files"
+
+    if not videos_folder.is_dir() or not labels_folder.is_dir():
+        raise ValueError(f"Missing folder for {name}")
+
+    included = 0
+    for video in sorted(videos_folder.glob("*.avi")):
+        label = labels_folder / f"{video.stem}.txt"
+        if not label.is_file():
+            raise ValueError(f"Missing own annotation: {label}")
+
+        values = [int(line) for line in label.read_text(encoding="utf-8-sig").split()]
+        if len(values) != 2:
+            raise ValueError(f"Expected start and end only: {label}")
+
+        cap = cv2.VideoCapture(str(video))
+        opened = cap.isOpened()
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
+        if not opened or frame_count <= 0:
+            raise ValueError(f"Cannot read video information: {video}")
+
+        start, end = values
+        if start == 0 and end == 0:
+            annotation_status = "zero_zero"
+        elif 1 <= start <= end <= frame_count:
+            annotation_status = "fall_interval"
+        else:
+            raise ValueError(f"Invalid fall interval: {label}")
+
+        records.append({
+            "video_id": f"{name}/{video.stem}",
+            "dataset": name,
+            "video_path": video.relative_to(root).as_posix(),
+            "annotation_path": label.relative_to(root).as_posix(),
+            "frame_count": frame_count,
+            "fall_start": start,
+            "fall_end": end,
+            "annotation_status": annotation_status,
+            "visual_review": "full_video_own_annotation",
+            "annotation_source": "own",
+        })
+        included += 1
+
+    print(name, "| Included videos:", included)
+
 #4# Check the total before writing the table
-if len(records) != 129:
-    raise ValueError(f"Expected 129 videos, found {len(records)}")
+if len(records) != 189:
+    raise ValueError(f"Expected 189 videos, found {len(records)}")
 
 #5# Save beside this Python script
 output = INDEX_FILE

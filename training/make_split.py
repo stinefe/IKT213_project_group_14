@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from falldet.config import INDEX_FILE, SPLITS_FILE
 
 # Specify the room to be used for the test set
-TEST_ROOM = "Home_02"
+TEST_ROOM = "Office"
 
 # Fraction of the training set to be used for validation
 VAL_FRAC= 0.2  

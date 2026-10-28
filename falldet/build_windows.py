@@ -1,8 +1,10 @@
 """Build labelled keypoint windows for classifier training."""
 
+import csv
+
 import numpy as np
 
-from falldet.config import OUTPUTS_DIR
+from falldet.config import INDEX_FILE, OUTPUTS_DIR
 from falldet.pose_preprocessing import interpolate_short_gaps
 
 POSES_DIR = OUTPUTS_DIR / "poses"
@@ -21,6 +23,8 @@ FPS_BY_DATASET = {
     "Coffee_room_02": 25,
     "Home_01": 24,
     "Home_02": 24,
+    "Lecture_room": 25,
+    "Office": 25,
 }
 
 # These zero-zero videos were manually reviewed.
@@ -69,7 +73,14 @@ def choose_label(window_start, window_end, fall_start, fall_end):
 
 
 def main():
+
     files = sorted(POSES_DIR.glob("*.npz"))
+
+    with open(INDEX_FILE, encoding="utf-8-sig", newline="") as f:
+        source_by_id = {
+            row["video_id"]: row["annotation_source"]
+            for row in csv.DictReader(f)
+        }
 
     if not files:
         raise FileNotFoundError(
@@ -136,7 +147,11 @@ def main():
         no_fall = (fall_start, fall_end) == (0, 0)
 
         if no_fall:
-            if video_id not in REVIEWED_NORMAL_IDS:
+            reviewed = (
+                video_id in REVIEWED_NORMAL_IDS
+                or source_by_id.get(video_id) == "own"
+            )
+            if not reviewed:
                 raise ValueError(
                     f"Zero-zero video needs manual review: {video_id}"
                 )
