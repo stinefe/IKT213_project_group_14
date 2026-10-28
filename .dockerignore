@@ -1,0 +1,12 @@
+# Things NOT to copy into the image (keeps it small and fast to build)
+venv/
+ikt213_env/
+.git/
+__pycache__/
+*.pyc
+outputs/poses/
+outputs/windows.npz
+data/
+dataset/
+*.mp4
+*.avi
