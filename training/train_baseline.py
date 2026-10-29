@@ -48,7 +48,7 @@ def main():
     # 2. Model: fill missing values, then a Random Forest that weights the rare Fall class up
     model = make_pipeline(
         SimpleImputer(strategy="median", keep_empty_features=True),
-        RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=0),
+        RandomForestClassifier(n_estimators=200, class_weight="balanced", min_samples_leaf=5, random_state=0),
     )
     model.fit(F[train], y[train])
 
@@ -71,7 +71,7 @@ def main():
     yv = y[val]
     fall_vids = sorted(set(val_ids[yv == 1]))
     all_vids = sorted(set(val_ids))
-    for threshold in [0.5]:
+    for threshold in [0.5, 0.4, 0.3, 0.2]:
         missed = [v for v in fall_vids
                   if not (proba[(val_ids == v) & (yv == 1)] >= threshold).any()]
         false_alarm = [v for v in all_vids
@@ -99,6 +99,7 @@ def main():
                 "feature_names": FEATURE_NAMES,
                 "window_frames": X.shape[1],          # 30
                 "sklearn_version": sklearn.__version__,
+                "threshold": 0.4,                     # ← chosen on validation
             },
             MODEL_OUT,
             compress=3,

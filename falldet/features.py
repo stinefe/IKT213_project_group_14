@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 
 L_SH, R_SH, L_HIP, R_HIP = 5, 6, 11, 12   # COCO keypoint indices
+L_ANKLE, R_ANKLE = 15, 16
 IMG_ASPECT = 4 / 3   # width / height of Le2i videos (320x240); x and y are normalized separately
 
 FEATURE_NAMES = [
@@ -11,7 +12,7 @@ FEATURE_NAMES = [
     "torso_angle_end",     # torso angle from vertical at the end (0 = upright, 90 = lying)
     "torso_angle_change",  # how much the torso tilted during the window
     "aspect_end",          # body width / height at the end (lying = wide)
-    "missing_frac",        # share of frames without shoulders + hips
+    "legs_angle_end",      # hip->ankle angle from vertical at the end (0 = on feet, 90 = on floor)
 ]
 
 
@@ -43,11 +44,18 @@ def window_features(kp, k=5):
         height = np.nanmax(kp[:, :, 1], axis=1) - np.nanmin(kp[:, :, 1], axis=1)
     aspect = np.where(height > 0, width / height, np.nan)
 
+        # Legs: line from mid-hip to the ankles. Bending keeps legs vertical, a fall doesn't.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        ankle = np.nanmean(kp[:, [L_ANKLE, R_ANKLE], :2], axis=1)   # one visible ankle is enough
+    legs = ankle - hip
+    legs_angle = np.degrees(np.arctan2(np.abs(legs[:, 0] * IMG_ASPECT), np.abs(legs[:, 1])))
+
     return np.array([
         _mean(hip_y[-k:]) - _mean(hip_y[:k]),
         _max(np.diff(hip_y)),
         _mean(angle[-k:]),
         _mean(angle[-k:]) - _mean(angle[:k]),
         _mean(aspect[-k:]),
-        np.mean(np.isnan(hip_y) | np.isnan(shoulder[:, 1])),
+        _mean(legs_angle[-k:]),
     ], dtype=np.float32)
