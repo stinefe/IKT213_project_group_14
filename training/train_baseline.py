@@ -5,8 +5,9 @@ import numpy as np
 import sklearn                                  # NEW
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve
 from sklearn.pipeline import make_pipeline
+
 
 from falldet.config import OUTPUTS_DIR, PROJECT_ROOT, SPLITS_FILE   # NEW: PROJECT_ROOT
 from falldet.features import FEATURE_NAMES, window_features
@@ -57,6 +58,32 @@ def main():
     print(confusion_matrix(y[val], pred, labels=[0, 1]))
     print(classification_report(y[val], pred, labels=[0, 1],
                                 target_names=["Normal", "Fall"], zero_division=0))
+
+    # Window level: precision at different thresholds
+    proba = model.predict_proba(F[val])[:, 1]
+    prec, rec, thr = precision_recall_curve(y[val], proba)
+    for target in [0.80, 0.85, 0.90, 0.95]:
+        i = np.where(rec[:-1] >= target)[0][-1]
+        print(f"recall >= {target:.2f}: threshold {thr[i]:.2f}, precision {prec[i]:.2f}")
+
+    # Event level for several thresholds
+    val_ids = video_ids[val]
+    yv = y[val]
+    fall_vids = sorted(set(val_ids[yv == 1]))
+    all_vids = sorted(set(val_ids))
+    for threshold in [0.5]:
+        missed = [v for v in fall_vids
+                  if not (proba[(val_ids == v) & (yv == 1)] >= threshold).any()]
+        false_alarm = [v for v in all_vids
+                       if (proba[(val_ids == v) & (yv == 0)] >= threshold).any()]
+        print(f"\nThreshold {threshold}: falls detected "
+              f"{len(fall_vids) - len(missed)}/{len(fall_vids)}, "
+              f"videos with false alarm {len(false_alarm)}/{len(all_vids)}")
+        for v in missed:
+            print("  MISS", v)
+        no_fall_alarms = [v for v in false_alarm if v not in fall_vids]
+        print(f"  false alarms in no-fall videos: {len(no_fall_alarms)}"
+            f" | in fall videos (before the fall): {len(false_alarm) - len(no_fall_alarms)}")
 
     # 4. Which features mattered most?
     importances = model[-1].feature_importances_

@@ -16,6 +16,13 @@ ANNOTATION_FOLDERS = {
     "Home_01": "Annotation_files_cleaned",
     "Home_02": "Annotation_files_cleaned",
 }
+
+# Own annotations (fall start/end only) for subsets without original labels.
+OWN_ANNOTATION_DATASETS = {
+    "Lecture_room": "Lecture room",
+    "Office": "Office",
+}
+
 CHECK_DATASET = "Home_02"
 POSE_VIDEO_ID = "Home_01/video (1)"
 POSE_OUTPUT_NAME = "pose_check_home01_video01"
