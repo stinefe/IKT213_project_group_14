@@ -354,7 +354,7 @@ def main():
         cv2.putText(shown, label, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.4, color, 3)
         angle_txt = "?" if torso_angle is None else f"{torso_angle:.0f}"
         legs_txt = "?" if leg_angle is None else f"{leg_angle:.0f}"
-        cv2.putText(shown, f"{fps:.1f} fps (trained on {TRAIN_FPS}) | torso {angle_txt} | legs {legs_txt} deg",
+        cv2.putText(shown, f"{fps:.1f} fps (trained on {TRAIN_FPS})",
                     (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         cv2.imshow("fall detection", shown)
         if TIMING:
