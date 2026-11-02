@@ -24,10 +24,8 @@ from ultralytics import YOLO
 
 from falldet.config import MODEL_PATH            # YOLO pose weights (same as batch extraction)
 from falldet.pose_preprocessing import interpolate_short_gaps  # same gap-filling as training
-try:
-    from falldet.features import window_features  # if features.py lives inside falldet/
-except ImportError:
-    from features import window_features           # if features.py is in the repo root
+from falldet.features import FEATURE_NAMES, window_features
+TORSO_IDX = FEATURE_NAMES.index("torso_angle_end")  # by name, so adding features can't break it
 from falldet.face_blur import blur_faces_from_result  # privacy blur for the display copy
 from alerts.alerts import AlertClient                # MQTT alerts (issue #11)
 
@@ -71,13 +69,19 @@ class CameraThread:
         self.cap = cap
         self.frame = None
         self.frame_id = 0          # goes up by 1 for every new frame
+        self.read_fps = 0.0        # how fast the CAMERA side delivers (for lag diagnosis)
         self.running = True
         self.lock = threading.Lock()
         threading.Thread(target=self._loop, daemon=True).start()
 
     def _loop(self):
+        count, since = 0, time.time()
         while self.running:
             ok, frame = self.cap.read()
+            count += 1
+            if time.time() - since >= 2.0:
+                self.read_fps = count / (time.time() - since)
+                count, since = 0, time.time()
             if not ok:
                 self.running = False
                 break
@@ -163,11 +167,20 @@ def open_camera():
     """CAMERA env var if set (e.g. a stream URL in Docker), else laptop webcam / Jetson CSI."""
     source = os.environ.get("CAMERA")
     if source:
-        return cv2.VideoCapture(int(source) if source.isdigit() else source)
+        if source.isdigit():
+            return cv2.VideoCapture(int(source))
+        # Network stream (Docker on the Jetson): tell FFmpeg to keep NO backlog.
+        # Default FFmpeg buffers seconds of video "to be safe" -> the picture lags behind.
+        os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS",
+                              "fflags;nobuffer|flags;low_delay|framedrop;1")
+        cap = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        return cap
     if platform.machine() == "aarch64":  # Jetson, outside Docker
         pipeline = (
             "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=640, height=480, framerate=30/1 ! "
-            "nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink drop=1"
+            "nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! "
+            "appsink drop=true max-buffers=1 sync=false"
         )
         return cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -250,11 +263,15 @@ def main():
     upright_since = None
     torso_angle = None
     last_printed = None
+    last_status = 0.0
+    skipped = 0           # frames the reader got that the main loop never used
     print(f"Running on device={DEVICE}, headless={HEADLESS}")
 
     while True:
         t0 = time.time()
+        prev_id = frame_id
         ok, frame, frame_id, frame_time = cam.read(frame_id)
+        skipped += max(0, frame_id - prev_id - 1)
         if not ok:
             print("No camera frame")
             break
@@ -279,7 +296,7 @@ def main():
             if missing <= MAX_MISSING_FRACTION:   # training skipped worse windows
                 processed[:, :, :2][remaining] = np.nan
                 feats = window_features(processed)
-                torso_angle = float(feats[2])     # torso_angle_end: 0 = upright, 90 = lying
+                torso_angle = float(feats[TORSO_IDX])  # 0 = upright, 90 = lying
                 if np.isnan(torso_angle):
                     torso_angle = None
                 leg_angle = legs_angle(processed)
@@ -340,6 +357,10 @@ def main():
         alerts.heartbeat(state, fps)   # "I'm alive" every 10 s
 
         if HEADLESS:   # no screen (Docker / room corner): print when the state changes
+            if now - last_status >= 5:   # + every 5 s: are we keeping up with the camera?
+                print(f"  status: loop {fps:.1f} fps | camera {cam.read_fps:.1f} fps | "
+                      f"skipped {skipped} old frames (good: we always use the newest)")
+                last_status, skipped = now, 0
             if state != last_printed:
                 angle_txt = "?" if torso_angle is None else f"{torso_angle:.0f}"
                 print(f"{time.strftime('%H:%M:%S')} {state:8s} fps={fps:.1f} torso={angle_txt}")
