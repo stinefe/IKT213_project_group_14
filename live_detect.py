@@ -55,6 +55,7 @@ MIN_GOOD_KEYPOINTS = 5
 HEADLESS = os.environ.get("HEADLESS") == "1"   # no window, print state changes
 DEVICE = os.environ.get("DEVICE") or ("0" if torch.cuda.is_available() else "cpu")
 TIMING = os.environ.get("TIMING") == "1"       # print ms per step (for finding slow parts)
+SHOW_FPS = os.environ.get("SHOW_FPS") == "1"   # show the fps line on screen (debugging only)
 # ------------------------------------------------------------------------------
 
 
@@ -330,7 +331,7 @@ def main():
                 if now - lying_since >= CONFIRM_SECONDS:
                     state, upright_since = "FALLEN", None
                     fallen_since = now
-                    alerts.fall(torso_angle=torso_angle)  # once per fall
+                    alerts.fall()  # once per fall
             else:
                 lying_since = None                # in between: wait, don't count
         elif state == "FALLEN":
@@ -348,6 +349,8 @@ def main():
             label, color = "OK", (0, 200, 0)
         elif state == "CHECKING":
             label, color = f"checking... {now - check_start:.1f}s", (0, 200, 255)
+        elif alerts.acknowledged:
+            label, color = "FALL - nurse on the way", (0, 140, 255)   # orange
         else:
             label, color = "FALL!", (0, 0, 255)
 
@@ -375,8 +378,9 @@ def main():
         cv2.putText(shown, label, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.4, color, 3)
         angle_txt = "?" if torso_angle is None else f"{torso_angle:.0f}"
         legs_txt = "?" if leg_angle is None else f"{leg_angle:.0f}"
-        cv2.putText(shown, f"{fps:.1f} fps (trained on {TRAIN_FPS})",
-                    (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        if SHOW_FPS:
+            cv2.putText(shown, f"{fps:.1f} fps (trained on {TRAIN_FPS})",
+                        (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         cv2.imshow("fall detection", shown)
         if TIMING:
             t4 = time.time()

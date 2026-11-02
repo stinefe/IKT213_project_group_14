@@ -25,6 +25,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     print(f"Connected to {MQTT_HOST}:{MQTT_PORT}, waiting for alerts...")
     client.subscribe("falldet/+/alert", qos=1)    # + = any device name
     client.subscribe("falldet/+/status", qos=1)
+    client.subscribe("falldet/+/ack", qos=1)
 
 
 def on_message(client, userdata, msg):
@@ -33,6 +34,9 @@ def on_message(client, userdata, msg):
     except ValueError:
         return
     device = msg.topic.split("/")[1]
+    if msg.topic.endswith("/ack"):
+        print(f"  ACKNOWLEDGED   device={device}   by={data.get('by')}   time={time.strftime('%H:%M:%S')}")
+        return
 
     if msg.topic.endswith("/alert"):
         if data.get("event") == "fall":
@@ -73,6 +77,10 @@ def main():
         client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
+    user = os.environ.get("MQTT_USER")
+    if user:
+        client.username_pw_set(user, os.environ.get("MQTT_PASS"))
+        client.tls_set()
     client.connect(MQTT_HOST, MQTT_PORT, keepalive=30)
     threading.Thread(target=watch_silence, daemon=True).start()
     client.loop_forever()
