@@ -39,11 +39,33 @@ def load_real():
 def main():
     X, y, video_ids, splits = load_dummy() if USE_DUMMY_DATA else load_real()
 
+    X, y, video_ids, splits = load_dummy() if USE_DUMMY_DATA else load_real()
+
     # 1. Each window -> feature vector
     F = np.stack([window_features(w) for w in X])
+
+    # Lecture_room and Office have no annotations in Le2i, so they are not in the
+    # splits. Drop their windows: without ground truth they would only add wrong labels.
+    video_ids = np.asarray(video_ids)
+    y = np.asarray(y)
+    keep = np.array([v in splits for v in video_ids])
+    skipped = sorted({v.split("/")[0] for v in video_ids[~keep]})
+    print(f"Skipping {(~keep).sum()} windows from videos without ground truth: {skipped}")
+    F, y, video_ids = F[keep], y[keep], video_ids[keep]
+
     split = np.array([splits[v] for v in video_ids])
     train, val = split == "train", split == "val"      # test set: only used once, at the very end
     print(f"Windows: train {train.sum()}, val {val.sum()}, Fall share {y.mean():.1%}")
+    # 1. Each window -> feature vector
+    """
+    F = np.stack([window_features(w) for w in X])
+    missing = sorted(set(video_ids) - set(splits))
+    print(len(missing), "videoer mangler i splits, f.eks.:", missing[:5])
+    print("Eksempler fra splits:", list(splits)[:5])
+    split = np.array([splits[v] for v in video_ids])
+    train, val = split == "train", split == "val"      # test set: only used once, at the very end
+    print(f"Windows: train {train.sum()}, val {val.sum()}, Fall share {y.mean():.1%}")
+    """
 
     # 2. Model: fill missing values, then a Random Forest that weights the rare Fall class up
     model = make_pipeline(
