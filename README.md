@@ -21,6 +21,7 @@ camera → body keypoints (YOLO) → movement features → Random Forest → rul
 | `data/` | our annotations and the train / val / test split |
 | `models/fall_rf.joblib` | the trained model |
 | `Dockerfile`, `.sh` files | running on the Jetson |
+| `docs/SETUP_GUIDE.md` | full guide for the training pipeline |
 
 ---
 
@@ -81,6 +82,10 @@ Never put passwords in the code or in git.
 ## 5. Train the model yourself (optional)
 
 Needs the **Le2i Fall Detection Dataset** (not included).
+The full step-by-step guide, including how to place the dataset and our own
+annotations for Office and Lecture_room, is in **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)**.
+
+Short version:
 
 ```bash
 python -m scripts.pose.extract_pose_batch    # 1. body keypoints for every video (slow)
