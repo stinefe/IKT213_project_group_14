@@ -108,7 +108,7 @@ With the final model, all 23 falls in the validation set were detected (threshol
 
 - A fall that ends kneeling can be missed.
 - The whole body must be visible to the camera.
-- The phone app only receives alerts while it is open.
+- The phone app only receives alerts while it is open (iphone-limitation).
 
 ---
 
