@@ -244,3 +244,4 @@ test_video.mp4
 #mqtt
 mqtt/data/
 mqtt/log/
+*.crt
