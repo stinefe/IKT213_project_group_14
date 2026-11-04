@@ -6,6 +6,6 @@
 gst-launch-1.0 -e \
   nvarguscamerasrc ! \
   'video/x-raw(memory:NVMM), width=640, height=480, framerate=25/1' ! \
-  nvvidconv ! nvv4l2h264enc insert-sps-pps=true iframeinterval=25 ! \
-  h264parse ! mpegtsmux ! \
-  tcpserversink host=127.0.0.1 port=5000
+  nvvidconv ! nvv4l2h264enc insert-sps-pps=true iframeinterval=25 idrinterval=25 ! \
+  h264parse config-interval=-1 ! mpegtsmux ! \
+  tcpserversink host=127.0.0.1 port=5000 sync=false

@@ -8,6 +8,13 @@ FROM ultralytics/ultralytics:latest-jetson-jetpack4
 ARG SKLEARN_VERSION=1.3.2
 RUN pip install --no-cache-dir "scikit-learn==${SKLEARN_VERSION}" joblib paho-mqtt
 
+# GUI-enabled OpenCV so cv2.imshow works when HEADLESS=0.
+# Same version as the headless one in the base image; --no-deps keeps numpy untouched.
+RUN apt-get update && apt-get install -y --no-install-recommends libgtk2.0-0 libgl1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip uninstall -y opencv-python-headless \
+    && pip install --no-cache-dir --no-deps "opencv-python==5.0.0.93"
+
 # Our code + trained model + YOLO weights
 WORKDIR /app
 COPY . /app
