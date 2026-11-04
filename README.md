@@ -15,13 +15,14 @@ camera → body keypoints (YOLO) → movement features → Random Forest → rul
 | Folder / file | What it does |
 |---|---|
 | `live_detect.py` | the live system: camera → fall detection → alert |
-| `falldet/` | shared code used by both training and live detection |
-| `alerts/` | sends alerts to the MQTT broker (+ a terminal listener) |
-| `scripts/`, `training/` | the training pipeline |
-| `data/` | our annotations and the train / val / test split |
+| `falldet/` | shared code used by both training and live detection (features, gap filling, face blur, window building) |
+| `alerts/` | sends alerts to the MQTT broker, plus a terminal listener |
+| `scripts/` | data preparation and pose extraction (training pipeline steps 1–4) |
+| `training/` | split, training, error analysis and the final test (steps 3, 6–8) |
+| `data/` | our annotations (`dataset_index.csv`) and the train / val / test split (`splits.csv`) |
 | `models/fall_rf.joblib` | the trained model |
+| `docs/SETUP_GUIDE.md` | full step-by-step guide for the training pipeline |
 | `Dockerfile`, `.sh` files | running on the Jetson |
-| `docs/SETUP_GUIDE.md` | full guide for the training pipeline |
 
 ---
 
@@ -98,9 +99,18 @@ Use the `data/splits.csv` that is already in the repo, so the results match ours
 
 ## 6. Results
 
-With the final model, all 23 falls in the validation set were detected (threshold 0.4).
+Fall detection per 1-second window, at the chosen threshold **0.4**
+(classifier only, without the live confirmation rules):
 
-*TODO*
+| | Precision | Recall | F1 | Falls detected |
+|---|---:|---:|---:|---:|
+| Validation (5 rooms, 32 videos) | 0.89 | 0.89 | 0.89 | 23/23 |
+| **Test (Office, a room never seen in training, 33 videos)** | **0.61** | **0.89** | **0.72** | **16/17** |
+
+The model catches falls equally well in a new room (same recall). It gives more
+false alarms there, mostly when someone sits down on a chair or picks something
+up from the floor. In the live system, the confirmation rules (lying for 2 s with
+the legs flat) are designed to filter exactly these cases.
 
 ---
 
