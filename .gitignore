@@ -245,3 +245,4 @@ test_video.mp4
 mqtt/data/
 mqtt/log/
 *.crt
+falldet.env

@@ -10,3 +10,4 @@ data/
 dataset/
 *.mp4
 *.avi
+falldet.env
