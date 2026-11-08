@@ -239,10 +239,12 @@ runs/
 *.pt
 
 # Local test video
-test_video.mp4
+*.mp4
 
 #mqtt
 mqtt/data/
 mqtt/log/
 *.crt
 falldet.env
+
+desktop.ini

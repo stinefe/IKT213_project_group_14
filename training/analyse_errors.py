@@ -20,6 +20,10 @@ def main():
     saved = joblib.load(PROJECT_ROOT / "models" / "fall_rf.joblib")
     model = saved["model"]
 
+    # Same decision threshold as the live system: the one saved with the model
+    # (chosen on validation in train_baseline.py). 0.5 only if none was saved.
+    threshold = float(saved.get("threshold", 0.5))
+
     if list(saved["feature_names"]) != list(FEATURE_NAMES):
         raise ValueError("Model feature names do not match features.py")
 
@@ -62,7 +66,9 @@ def main():
         ])
 
         true = data["y"][indices]
-        predicted = model.predict(features)
+        fall_column = list(model.classes_).index(1)
+        fall_probability = model.predict_proba(features)[:, fall_column]
+        predicted = (fall_probability >= threshold).astype(int)
 
         results = pd.DataFrame({
             "window_index": indices,
@@ -74,6 +80,7 @@ def main():
             "predicted_label": np.where(
                 predicted == 1, "Fall", "Normal"
             ),
+            "fall_probability": fall_probability.round(3),
             "core_missing_fraction":
                 data["core_missing_fraction"][indices],
         })
@@ -118,6 +125,7 @@ def main():
     # Save metrics as values between 0 and 1.
     metrics = pd.DataFrame([{
         "split": "val",
+        "threshold": threshold,
         "validation_windows": len(indices),
         "normal_windows": int(np.sum(true == 0)),
         "fall_windows": int(np.sum(true == 1)),
@@ -139,6 +147,7 @@ def main():
     )
 
     # Print results.
+    print("Threshold:", threshold)
     print("Validation windows:", len(indices))
     print("Confusion matrix (Normal, Fall):")
     print(matrix)
