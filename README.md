@@ -53,9 +53,40 @@ Stand so your **whole body, feet included**, is visible. Press **q** to quit.
 
 ## 3. Run on the Jetson Nano
 
-*TODO*
+### One-time setup
 
----
+1. Copy the project folder to the Jetson.
+2. Create `falldet.env` in the project folder with the MQTT settings:
+   ```
+   DEVICE_ID=room1
+   MQTT_HOST=<broker address>
+   MQTT_PORT=8883
+   MQTT_USER=<user>
+   MQTT_PASS=<password>
+   ```
+   `falldet.env` is listed in both `.gitignore` and `.dockerignore`, so the password
+   is never committed or copied into the image.
+3. Build the Docker image from the project folder:
+   ```bash
+   sudo docker build -t falldet .
+   ```
+
+`models/fall_rf.joblib` must be trained with **scikit-learn 1.3.2 and numpy 1.24.4**,
+the versions inside the container. A model saved with newer versions will not load
+(`No module named 'numpy._core'`).
+
+### Every time
+
+**Terminal 1** – camera stream (leave it running):
+```bash
+bash jetson_camera_stream.sh
+```
+
+**Terminal 2** – fall detection, with a preview window on the Jetson's screen:
+```bash
+bash run_with_display.sh
+```
+
 
 ## 4. Alerts (MQTT)
 

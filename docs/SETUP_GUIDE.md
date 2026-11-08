@@ -51,23 +51,27 @@ be extracted**, both the outer one and every inner one. The scripts cannot read
 videos inside zip files.
 
 ### 2.3 Our own annotations for Office and Lecture_room
-The original dataset has no annotations for `Office` and `Lecture_room`, so we
-annotated these videos ourselves. For each video we watched the whole video and
-recorded the fall start and end frame, or `0 0` if there is no fall.
-<!-- TODO: describe the rule used for start and end (e.g. loss of balance →
-person on the ground) -->
 
-The annotation files are **not** in Git; get them from the group (shared folder)
-and place them here:
+The original dataset has no annotations for `Office` and `Lecture_room`, so we annotated
+these videos ourselves with a small tool, `scripts/data/annotate_falls.py`. For each video
+we watched the whole clip and marked the frame where the fall starts and where the frame ends, or `0 0` if the video contains no fall.
+
+**Rule used for start and end:**
+- **Start:** the first frame where the person clearly loses balance and starts moving
+  towards the ground.
+- **End:** the first frame where the person is on the ground and has stopped moving downwards.
+
+Our annotation files are in `data/manual_annotations/`. Copy them into the dataset so they
+sit next to the original Le2i annotations:
 
 ```
 FallDataset/Office/Office/Annotation_files/video (1).txt ...
 FallDataset/Lecture_room/Lecture room/Annotation_files/video (1).txt ...
 ```
 
-Each file contains only two numbers: the fall start frame and the fall end frame.
-<!-- TODO: own_annotations_log.csv (backup of the annotation work) is not in Git
-yet: add it, or remove this note. -->
+Each file contains only two numbers on separate lines: the fall start frame and the fall
+end frame. Unlike the original Le2i files, they have no bounding boxes, because our
+pipeline only uses the start and end frames.
 
 ### 2.4 Place the dataset next to the repository
 The default configuration expects `FallDataset` **beside** the project folder,
