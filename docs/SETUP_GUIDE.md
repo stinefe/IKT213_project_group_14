@@ -176,12 +176,10 @@ validation, seed 42). Saved to `data/splits.csv`.
 
 | split | Videos | Fall | Normal |
 |---|---:|---:|---:|
-| train | 124 | <!-- TODO --> | <!-- TODO --> |
+| train | 124 | 89 | 35 |
 | val | 32 | 23 | 9 |
-| test (Office) | 33 | <!-- TODO --> | <!-- TODO --> |
+| test (Office) | 33 | 17 | 16 |
 | **Total** | **189** | **129** | **60** |
-
-<!-- TODO: fill in from the crosstab printed by make_split.py. -->
 
 The script stops with an `AssertionError` if any video is lost, duplicated,
 or placed in more than one split.
@@ -210,8 +208,16 @@ PyTorch, `device=0` is much faster.
 
 **Expected:** `Done. 189 ok, 0 failed.`
 
-<!-- TODO: add key numbers from pose_summary.csv (share of frames with one
-person / core joints OK, overall and inside the fall interval). -->
+**Pose quality** (from `outputs/pose_summary.csv`, 189 videos, 75 680 frames):
+
+| | Share of frames |
+|---|---:|
+| Exactly one person detected | 87.4 % |
+| All core joints (shoulders + hips) visible | 87.8 % |
+| All core joints visible **inside the fall** (mean per video) | 89.2 % |
+
+The pose is found reliably, also during the fall itself, which is the hardest
+moment (fast movement, unusual body position).
 
 ### Step 5 – Build labelled windows
 ```bash
@@ -263,6 +269,7 @@ Frame rate per subset:
 |---|---|---|---|
 | 6 | `training/train_baseline.py` | Windows + splits | `models/fall_rf.joblib` |
 | 7 | `training/analyse_errors.py` | Model + windows + splits | `outputs/validation_errors.csv`, `outputs/validation_metrics.csv` |
+| 8 | `training/evaluate_test.py` | Model + windows + splits | (prints only) |
 
 ### Step 6 – Train the classifier
 ```bash
@@ -290,12 +297,31 @@ window length, scikit-learn version and the chosen decision **threshold (0.4)**.
 > final model with the same version, otherwise it may not load there.
 
 **Expected (validation, 1 661 windows, 32 videos):**
-<!-- TODO: fill in the final numbers (confusion matrix, window-level precision /
-recall / F1, event-level table, feature importances). -->
+
+Window level at the default threshold 0.5 (what the script prints first):
+
+| | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Normal | 0.99 | 1.00 | 0.99 |
+| Fall | 0.95 | 0.86 | 0.91 |
+
+Confusion matrix: `[[1522 6] [18 115]]`
+
+Event level:
+
+| Threshold | Falls detected | No-fall videos with false alarm | Fall videos with alarm before the fall |
+|---:|---:|---:|---:|
+| 0.5 | 22/23 | 2 | 3 |
+| **0.4** | **23/23** | 4 | 3 |
+| 0.3 | 23/23 | 5 | 4 |
+| 0.2 | 23/23 | 7 | 4 |
+
+Feature importances: hip_max_speed 0.36, aspect_end 0.27, torso_angle_end 0.18,
+legs_angle_end 0.09, hip_drop 0.09, torso_angle_change 0.02.
 
 ### Step 7 – Error analysis on validation
 ```bash
-uv run python training/analyse_errors.py
+python -m training.analyse_errors
 ```
 Loads the saved model, predicts on the validation windows and saves every
 misclassified window to `outputs/validation_errors.csv` (video, frames, FPS,
@@ -307,13 +333,30 @@ Use the CSV for manual review: filter on `error_type`, open the video at
 `review_notes`. A high `core_missing_fraction` points to pose estimation
 problems rather than classifier errors.
 
-> The threshold is set with `THRESHOLD` in the script. Use the same value as in
-> the model file (0.4).
+> The script uses the threshold saved in the model file (0.4), the same as the
+> live system. The CSV also includes `fall_probability` for each wrong window.
 
-### Test set
-The Office test set is evaluated **once**, after the threshold and alarm logic
-are fixed on the validation set. Do not tune anything after looking at the
-test results.
+**Expected (threshold 0.4):** confusion matrix `[[1514 14] [14 119]]`,
+14 false negatives and 14 false positives in 11 videos.
+Fall precision 0.89, recall 0.89, F1 0.89.
+
+### Step 8 – Final test (run once)
+```bash
+python -m training.evaluate_test
+```
+Evaluates the saved model **once** on the Office test set (a room never seen in
+training), at the threshold stored in the model file. Nothing is tuned or saved.
+Do not change any setting after looking at these results.
+
+**Result (threshold 0.4, classifier only, without the live confirmation rules):**
+
+| | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Fall (per window, 2 459 windows) | 0.61 | 0.89 | 0.72 |
+
+- Falls detected: **16/17** (missed: `Office/video (11)`)
+- No-fall videos with at least one false alarm window: **12/16**, mostly
+  sitting down on a chair and picking something up from the floor
 
 ---
 
